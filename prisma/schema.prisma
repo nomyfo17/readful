@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  bio           String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Author profile
+  isAuthor      Boolean   @default(false)
+  authorName    String?
+  authorBio     String?
+  authorImage   String?
+  
+  // Relations
+  books         Book[]
+  reads         Read[]
+  bookmarks     Bookmark[]
+  following     Following[]  @relation("Following")
+  followers     Following[]  @relation("Follower")
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  
+  @@unique([identifier, token])
+}
+
+model Book {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  coverImage  String?
+  epubFile    String
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Stats
+  readCount   Int       @default(0)
+  likeCount   Int       @default(0)
+  
+  // Categories/Genres
+  genres      String[]  @default([])
+  
+  // Relations
+  reads       Read[]
+  bookmarks   Bookmark[]
+  chapters    Chapter[]
+  
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @db.Text
+  order     Int
+  createdAt DateTime @default(now())
+  
+  @@unique([bookId, order])
+  @@index([bookId])
+}
+
+model Read {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  progress  Float    @default(0) // 0-100
+  lastRead  DateTime?
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+  
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@index([bookId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookId    String
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapterId String?
+  page      Int?
+  notes     String?   @db.Text
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@index([bookId])
+}
+
+model Following {
+  id           String   @id @default(cuid())
+  followerId   String
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId  String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}

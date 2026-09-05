@@ -1,13 +1,19 @@
+import { redirect } from "next/navigation";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Settings, User, Bookmark, Bell, Shield, Heart, Pen } from "lucide-react";
+import { Settings, User, Bookmark, Bell, Shield, Heart, Pen, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
 
 export default async function SettingsPage() {
   const session = await auth();
+
+  // Redirect to login if not authenticated
+  if (!session?.user) {
+    redirect("/auth/login?redirect=/settings");
+  }
 
   const settingsSections = [
     {
@@ -20,21 +26,21 @@ export default async function SettingsPage() {
     {
       icon: <Bookmark className="w-6 h-6" />,
       title: "Bookmarks",
-      description: "View your saved books",
+      description: "View and manage your saved books",
       path: "/settings/bookmarks",
       color: "from-yellow-500 to-amber-500",
     },
     {
       icon: <Bell className="w-6 h-6" />,
       title: "Notifications",
-      description: "Configure your preferences",
+      description: "Configure your notification preferences",
       path: "/settings/notifications",
       color: "from-green-500 to-emerald-500",
     },
     {
       icon: <Shield className="w-6 h-6" />,
       title: "Privacy & Security",
-      description: "Control your data and security",
+      description: "Control your data and security settings",
       path: "/settings/security",
       color: "from-red-500 to-orange-500",
     },
@@ -48,7 +54,7 @@ export default async function SettingsPage() {
     {
       icon: <Pen className="w-6 h-6" />,
       title: "Author Settings",
-      description: "Manage your author profile",
+      description: "Manage your author profile and settings",
       path: "/settings/author",
       color: "from-indigo-500 to-violet-500",
     },
@@ -65,12 +71,31 @@ export default async function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <h1 className="text-4xl font-bold mb-2">
-            <span className="text-gradient">Settings</span>
-          </h1>
-          <p className="text-slate-400">
-            Customize your Readful experience
-          </p>
+          <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold mb-2">
+                <span className="text-gradient">Settings</span>
+              </h1>
+              <p className="text-slate-400">
+                Customize your Readful experience
+              </p>
+            </div>
+            <form
+              action={async () => {
+                "use server";
+                await signOut({ redirectTo: "/" });
+              }}
+            >
+              <Button
+                type="submit"
+                variant="outline"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Log Out
+              </Button>
+            </form>
+          </div>
         </motion.div>
 
         {/* Settings Grid */}
@@ -78,7 +103,7 @@ export default async function SettingsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16"
         >
           {settingsSections.map((section, index) => (
             <Link key={section.title} href={section.path}>
@@ -101,7 +126,7 @@ export default async function SettingsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16"
         >
           <div className="bg-gradient-card rounded-2xl p-6">
             <h3 className="text-xl font-semibold mb-4">Quick Access</h3>
@@ -114,6 +139,11 @@ export default async function SettingsPage() {
               <Link href="/author">
                 <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white">
                   Author Dashboard
+                </Button>
+              </Link>
+              <Link href="/app/search">
+                <Button variant="ghost" className="w-full justify-start text-slate-300 hover:text-white">
+                  Search Books
                 </Button>
               </Link>
               <Link href="/docs">
@@ -132,9 +162,49 @@ export default async function SettingsPage() {
                   Edit Profile
                 </Button>
               </Link>
-              <Button variant="destructive" className="w-full">
-                Delete Account
-              </Button>
+              <form
+                action={async () => {
+                  "use server";
+                  await signOut({ redirectTo: "/" });
+                }}
+              >
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="w-full bg-transparent border-red-500/30 text-red-400 hover:bg-red-500/10"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log Out
+                </Button>
+              </form>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Account Info */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="bg-gradient-card rounded-2xl p-6"
+        >
+          <h3 className="text-xl font-semibold mb-4">Account Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-slate-500 text-sm mb-1">Email</p>
+              <p className="text-white">{session.user.email}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-sm mb-1">Name</p>
+              <p className="text-white">{session.user.name || "Not set"}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-sm mb-1">Account Type</p>
+              <p className="text-white">{session.user.isAuthor ? "Author" : "Reader"}</p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-sm mb-1">Member Since</p>
+              <p className="text-white">{new Date(session.user.createdAt || "").toLocaleDateString()}</p>
             </div>
           </div>
         </motion.div>

@@ -11,7 +11,7 @@ import { BookCard } from "@/components/BookCard";
 export default async function AppPage() {
   const session = await auth();
 
-  // Fetch books data
+  // Fetch books data (public - no auth required)
   const books = await prisma.book.findMany({
     include: {
       author: {
@@ -45,13 +45,6 @@ export default async function AppPage() {
 
   const quickActions = [
     {
-      icon: <Upload className="w-6 h-6" />,
-      title: "Upload Book",
-      description: "Share your EPUB files",
-      path: "/app/upload",
-      color: "from-green-500 to-emerald-500",
-    },
-    {
       icon: <Search className="w-6 h-6" />,
       title: "Search Books",
       description: "Find new content",
@@ -74,6 +67,17 @@ export default async function AppPage() {
     },
   ];
 
+  // If user is logged in, add upload action
+  if (session) {
+    quickActions.unshift({
+      icon: <Upload className="w-6 h-6" />,
+      title: "Upload Book",
+      description: "Share your EPUB files",
+      path: "/author/upload",
+      color: "from-green-500 to-emerald-500",
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gradient-dark pt-16">
       <Navbar session={session} />
@@ -95,7 +99,7 @@ export default async function AppPage() {
               </p>
             </div>
             {session && (
-              <Link href="/app/upload">
+              <Link href="/author/upload">
                 <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
                   <Upload className="w-4 h-4 mr-2" />
                   Upload EPUB
@@ -250,6 +254,21 @@ export default async function AppPage() {
               />
             ))}
           </div>
+        </motion.div>
+
+        {/* Public Notice */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-12 text-center py-8"
+        >
+          <p className="text-slate-400 text-sm">
+            {session
+              ? "You can bookmark any book to save your reading progress. Each book can only have one bookmark, which will be updated when you move to a new page."
+              : "Browse and read books without an account. Create an account to upload books, follow authors, and save bookmarks."
+            }
+          </p>
         </motion.div>
       </div>
 

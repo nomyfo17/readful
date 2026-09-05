@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
           page: bookmark.page,
           notes: bookmark.notes,
           createdAt: bookmark.createdAt,
+          updatedAt: bookmark.updatedAt,
         })),
         message: "Bookmarks fetched successfully"
       },
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     
     if (!session?.user) {
       return NextResponse.json(
-        { message: "Unauthorized" },
+        { message: "Unauthorized - Please log in to bookmark" },
         { status: 401 }
       );
     }
@@ -95,26 +96,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create or update bookmark
-    const bookmark = await prisma.bookmark.upsert({
+    // Check if user already has a bookmark for this book
+    const existingBookmark = await prisma.bookmark.findFirst({
       where: {
-        userId_bookId: {
-          userId: session.user.id,
-          bookId,
-        },
-      },
-      create: {
         userId: session.user.id,
         bookId,
-        chapterId,
-        page,
-        notes,
       },
-      update: {
-        chapterId,
-        page,
-        notes,
-      },
+    });
+
+    let bookmark;
+    
+    if (existingBookmark) {
+      // Update existing bookmark (move it to new page/chapter)
+      bookmark = await prisma.bookmark.update({
+        where: {
+          id: existingBookmark.id,
+        },
+        data: {
+          chapterId: chapterId || null,
+          page: page || null,
+          notes: notes || null,
+          updatedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new bookmark
+      bookmark = await prisma.bookmark.create({
+        data: {
+          userId: session.user.id,
+          bookId,
+          chapterId: chapterId || null,
+          page: page || null,
+          notes: notes || null,
+        },
+      });
+    }
+
+    // Increment book's like count (bookmark = interest)
+    await prisma.book.update({
+      where: { id: bookId },
+      data: { likeCount: { increment: 1 } },
     });
 
     return NextResponse.json(
@@ -126,8 +147,9 @@ export async function POST(request: NextRequest) {
           page: bookmark.page,
           notes: bookmark.notes,
           createdAt: bookmark.createdAt,
+          updatedAt: bookmark.updatedAt,
         },
-        message: "Bookmark saved successfully"
+        message: existingBookmark ? "Bookmark moved successfully" : "Bookmark created successfully"
       },
       { status: 201 }
     );
@@ -175,6 +197,82 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting bookmark:", error);
     return NextResponse.json(
       { message: "Failed to delete bookmark", error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+
+// Special endpoint to move bookmark to a new page
+// POST /api/bookmarks/move
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { oldBookId, newBookId, chapterId, page, notes } = await request.json();
+
+    if (!oldBookId || !newBookId) {
+      return NextResponse.json(
+        { message: "Both old and new book IDs are required" },
+        { status: 400 }
+      );
+    }
+
+    // Find existing bookmark for old book
+    const existingBookmark = await prisma.bookmark.findFirst({
+      where: {
+        userId: session.user.id,
+        bookId: oldBookId,
+      },
+    });
+
+    if (!existingBookmark) {
+      return NextResponse.json(
+        { message: "No bookmark found for the specified book" },
+        { status: 404 }
+      );
+    }
+
+    // Delete old bookmark
+    await prisma.bookmark.delete({
+      where: { id: existingBookmark.id },
+    });
+
+    // Create new bookmark for new book
+    const newBookmark = await prisma.bookmark.create({
+      data: {
+        userId: session.user.id,
+        bookId: newBookId,
+        chapterId: chapterId || null,
+        page: page || null,
+        notes: notes || null,
+      },
+    });
+
+    return NextResponse.json(
+      { 
+        message: "Bookmark moved successfully",
+        oldBookmarkId: existingBookmark.id,
+        newBookmark: {
+          id: newBookmark.id,
+          bookId: newBookmark.bookId,
+          chapterId: newBookmark.chapterId,
+          page: newBookmark.page,
+          notes: newBookmark.notes,
+        }
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error moving bookmark:", error);
+    return NextResponse.json(
+      { message: "Failed to move bookmark", error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }

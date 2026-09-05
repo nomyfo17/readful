@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Pen, Users, BookOpen, Eye, Upload, Settings, BarChart3 } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Pen, Users, BookOpen, Eye, Upload, Settings, BarChart3, Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -11,10 +12,15 @@ import { BookCard } from "@/components/BookCard";
 export default async function AuthorPage() {
   const session = await auth();
 
+  // Redirect to login if not authenticated
+  if (!session?.user) {
+    redirect("/auth/login?redirect=/author");
+  }
+
   // Fetch author data
   const authorBooks = await prisma.book.findMany({
     where: {
-      authorId: session?.user?.id || "",
+      authorId: session.user.id,
     },
     include: {
       author: {
@@ -39,11 +45,17 @@ export default async function AuthorPage() {
   const authorStats = {
     totalBooks: authorBooks.length,
     totalReads: authorBooks.reduce((sum, book) => sum + book.readCount, 0),
-    followers: session?.user?.id ? await prisma.following.count({
+    totalLikes: authorBooks.reduce((sum, book) => sum + book.likeCount, 0),
+    followers: await prisma.following.count({
       where: {
         followingId: session.user.id,
       },
-    }) : 0,
+    }),
+    following: await prisma.following.count({
+      where: {
+        followerId: session.user.id,
+      },
+    }),
   };
 
   const popularBooks = [...authorBooks].sort((a, b) => b.readCount - a.readCount).slice(0, 6);
@@ -53,30 +65,30 @@ export default async function AuthorPage() {
     {
       icon: <Upload className="w-6 h-6" />,
       title: "Upload Book",
-      description: "Add new EPUB",
-      path: "/app/upload",
+      description: "Add new EPUB to your collection",
+      path: "/author/upload",
       color: "from-green-500 to-emerald-500",
-    },
-    {
-      icon: <Settings className="w-6 h-6" />,
-      title: "Author Settings",
-      description: "Manage profile",
-      path: "/settings/profile",
-      color: "from-blue-500 to-cyan-500",
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
       title: "Analytics",
-      description: "View stats",
+      description: "View detailed reading statistics",
       path: "/author/data",
       color: "from-purple-500 to-pink-500",
     },
     {
       icon: <Users className="w-6 h-6" />,
       title: "Followers",
-      description: "Your fans",
+      description: `Manage your ${authorStats.followers} followers`,
       path: "/author/followers",
-      color: "from-yellow-500 to-amber-500",
+      color: "from-orange-500 to-red-500",
+    },
+    {
+      icon: <Settings className="w-6 h-6" />,
+      title: "Author Settings",
+      description: "Configure your author profile",
+      path: "/settings/author",
+      color: "from-blue-500 to-cyan-500",
     },
   ];
 
@@ -100,14 +112,12 @@ export default async function AuthorPage() {
                 Manage your books, track reads, and engage with your audience
               </p>
             </div>
-            {session && (
-              <Link href="/app/upload">
-                <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload New Book
-                </Button>
-              </Link>
-            )}
+            <Link href="/author/upload">
+              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+                <Upload className="w-4 h-4 mr-2" />
+                Upload New Book
+              </Button>
+            </Link>
           </div>
         </motion.div>
 
@@ -116,7 +126,7 @@ export default async function AuthorPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
         >
           <div className="bg-gradient-card rounded-2xl p-6">
             <div className="flex items-center gap-4 mb-2">
@@ -138,6 +148,18 @@ export default async function AuthorPage() {
               <div>
                 <h3 className="text-2xl font-bold">{authorStats.totalReads}</h3>
                 <p className="text-slate-400 text-sm">Total Reads</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-card rounded-2xl p-6">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-500 flex items-center justify-center">
+                <Pen className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold">{authorStats.totalLikes}</h3>
+                <p className="text-slate-400 text-sm">Total Likes</p>
               </div>
             </div>
           </div>
@@ -263,7 +285,7 @@ export default async function AuthorPage() {
         )}
 
         {/* Empty State */}
-        {authorBooks.length === 0 && session && (
+        {authorBooks.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -277,7 +299,7 @@ export default async function AuthorPage() {
             <p className="text-slate-400 mb-6 max-w-md mx-auto">
               You haven&apos;t uploaded any books yet. Start sharing your work with the community!
             </p>
-            <Link href="/app/upload">
+            <Link href="/author/upload">
               <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Your First Book

@@ -1,26 +1,4 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next",
-      "config": { "installCommand": "npm install --legacy-peer-deps" }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/uploads/(.*)",
-      "destination": "/public/uploads/$1"
-    }
-  ]
+  "installCommand": "npm install --legacy-peer-deps"
 }

@@ -1,0 +1,22 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+  functions = ".netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  DATABASE_URL = "${DATABASE_URL}"
+  DIRECT_URL = "${DIRECT_URL}"
+  NEXTAUTH_URL = "${NEXTAUTH_URL}"
+  NEXTAUTH_SECRET = "${NEXTAUTH_SECRET}"
+
+[[redirects]]
+  from = "/*"
+  to = "/.next/server/pages/:splat"
+  status = 200
+
+[functions]
+  included_functions = ["next-server"]
+
+[plugins]
+  "@netlify/plugin-nextjs" = "{}"

@@ -19,7 +19,7 @@ const nextConfig = {
   },
 };
 
-export default withPWA({
+export default withPWA(nextConfig, {
   dest: "public",
   register: true,
   skipWaiting: true,
@@ -70,5 +70,4 @@ export default withPWA({
     },
   ],
   buildExcludes: [/middleware-manifest\.json$/],
-  ...nextConfig,
 });

@@ -1,7 +1,6 @@
 [build]
   command = "npm run build"
   publish = ".next"
-  functions = ".netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
@@ -14,9 +13,6 @@
   from = "/*"
   to = "/.next/server/pages/:splat"
   status = 200
-
-[functions]
-  included_functions = ["next-server"]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

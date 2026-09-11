@@ -1,7 +1,6 @@
-import type { NextConfig } from "next";
 import withPWA from "next-pwa";
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   // Enable PWA
   // experimental: {
   //   appDir: true,
@@ -32,7 +31,7 @@ export default withPWA({
   skipWaiting: true,
   runtimeCaching: [
     {
-      urlPattern: /\.(?:eot|otf|ttc|ttf|woff|woff2|font\.css)$/i,
+      urlPattern: /\\.(?:eot|otf|ttc|ttf|woff|woff2|font\\.css)$/i,
       handler: "CacheFirst",
       options: {
         cacheName: "font-cache",
@@ -43,7 +42,7 @@ export default withPWA({
       },
     },
     {
-      urlPattern: /\.(?:png|jpg|jpeg|gif|svg|webp|ico)$/i,
+      urlPattern: /\\.(?:png|jpg|jpeg|gif|svg|webp|ico)$/i,
       handler: "CacheFirst",
       options: {
         cacheName: "image-cache",
@@ -54,7 +53,7 @@ export default withPWA({
       },
     },
     {
-      urlPattern: /\.(?:js|css)$/i,
+      urlPattern: /\\.(?:js|css)$/i,
       handler: "StaleWhileRevalidate",
       options: {
         cacheName: "static-cache",
@@ -65,7 +64,7 @@ export default withPWA({
       },
     },
     {
-      urlPattern: /\.(?:epub)$/i,
+      urlPattern: /\\.(?:epub)$/i,
       handler: "CacheFirst",
       options: {
         cacheName: "epub-cache",
@@ -76,5 +75,5 @@ export default withPWA({
       },
     },
   ],
-  buildExcludes: [/middleware-manifest\.json$/],
+  buildExcludes: [/middleware-manifest\\.json$/],
 });

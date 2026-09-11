@@ -18,5 +18,5 @@
 [functions]
   included_functions = ["next-server"]
 
-[plugins]
-  "@netlify/plugin-nextjs" = "{}"
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
